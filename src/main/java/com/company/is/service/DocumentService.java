@@ -1,35 +1,53 @@
 package com.company.is.service;
 
 import com.company.is.domain.Document;
+import com.company.is.dto.CreateDocumentRequest;
+import com.company.is.dto.DocumentResponse;
+import com.company.is.dto.UpdateDocumentRequest;
+import com.company.is.exception.DocumentNotFoundException;
+import com.company.is.mapper.DocumentMapper;
 import com.company.is.repository.DocumentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class DocumentService {
 
-    @Autowired
-    private DocumentRepository documentRepository;
+    private final DocumentRepository documentRepository;
+    private final DocumentMapper documentMapper;
 
-    public Document createDocument(Document document) {
+    public DocumentResponse createDocument(CreateDocumentRequest request) {
+        Document document = documentMapper.toEntity(request);
         if (document.getCreationDate() == null) {
             document.setCreationDate(LocalDateTime.now());
         }
-        return documentRepository.save(document);
+        Document savedDocument = documentRepository.save(document);
+        return documentMapper.toResponse(savedDocument);
     }
 
-    public Document updateDocument(Long id, Document incoming) {
+    public DocumentResponse updateDocument(Long id, UpdateDocumentRequest request) {
         Document existing = documentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
-        existing.setName(incoming.getName());
-        existing.setType(incoming.getType());
-        existing.setBody(incoming.getBody());
-        return documentRepository.save(existing);
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + id));
+        
+        documentMapper.updateEntityFromDto(request, existing);
+        
+        Document savedDocument = documentRepository.save(existing);
+        return documentMapper.toResponse(savedDocument);
     }
 
     public void deleteDocument(Long id) {
+        if (!documentRepository.existsById(id)) {
+            throw new DocumentNotFoundException("Document not found with id: " + id);
+        }
         documentRepository.deleteById(id);
+    }
+
+    public DocumentResponse getDocument(Long id) {
+        Document document = documentRepository.findById(id)
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + id));
+        return documentMapper.toResponse(document);
     }
 }
