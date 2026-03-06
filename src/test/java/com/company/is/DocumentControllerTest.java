@@ -75,4 +75,23 @@ public class DocumentControllerTest {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/documents/" + doc.getId()))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    public void getDocumentsByUser_ShouldReturnList() throws Exception {
+        Document doc1 = new Document();
+        doc1.setName("Doc 1");
+        doc1.setUsername("user1");
+        documentRepository.save(doc1);
+
+        Document doc2 = new Document();
+        doc2.setName("Doc 2");
+        doc2.setUsername("user2");
+        documentRepository.save(doc2);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/documents/user/user1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].username").value("user1"));
+    }
 }
